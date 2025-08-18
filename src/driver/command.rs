@@ -16,7 +16,9 @@ macro_rules! implement_basic_command {
 #[macro_export]
 macro_rules! command_segment {
     ($self:expr, $buf:expr, $segment:ident) => {
-        $buf.write(&$self.$segment.encode())
+        $self
+            .$segment
+            .encode(&mut $buf)
             .expect("no space in buffer");
     };
 

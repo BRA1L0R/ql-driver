@@ -1,34 +1,43 @@
-pub trait Encode<const SIZE: usize> {
+use std::io::Write;
+
+pub trait Encode {
     // const SIZE: usize;
-    fn encode(self) -> [u8; SIZE];
+    fn encode(&self, buf: impl Write) -> std::io::Result<()>;
 }
 
-impl<const SIZE: usize> Encode<SIZE> for [u8; SIZE] {
-    fn encode(self) -> [u8; SIZE] {
-        self
+impl Encode for &[u8] {
+    fn encode(&self, mut buf: impl Write) -> std::io::Result<()> {
+        buf.write_all(&self)
+    }
+}
+
+impl<const N: usize> Encode for [u8; N] {
+    fn encode(&self, buf: impl Write) -> std::io::Result<()> {
+        self.as_ref().encode(buf)
     }
 }
 
 #[macro_export]
 macro_rules! encode_integers {
-    ($integer:ty, $size:expr) => {
-        impl crate::driver::encode::Encode<$size> for $integer {
+    ($integer:ty) => {
+        impl crate::driver::encode::Encode for $integer {
             // const SIZE: usize = $size;
-            fn encode(self) -> [u8; $size] {
-                self.to_le_bytes()
+            fn encode(&self, mut buf: impl Write) -> std::io::Result<()> {
+                let encoded = self.to_le_bytes();
+                buf.write_all(&encoded)
             }
         }
     };
 }
 
-encode_integers!(u8, 1);
-encode_integers!(u16, 2);
-encode_integers!(u32, 4);
-encode_integers!(u64, 8);
-encode_integers!(i8, 1);
-encode_integers!(i16, 2);
-encode_integers!(i32, 4);
-encode_integers!(i64, 8);
+encode_integers!(u8);
+encode_integers!(u16);
+encode_integers!(u32);
+encode_integers!(u64);
+encode_integers!(i8);
+encode_integers!(i16);
+encode_integers!(i32);
+encode_integers!(i64);
 
 // #[macro_export]
 // macro_rules! encode_enum {

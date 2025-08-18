@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::driver::encode::Encode;
 
 #[derive(Debug, Clone, Copy)]
@@ -82,9 +84,9 @@ pub struct PrinterStatus {
     pub phase_state: PhaseState,
 }
 
-impl Encode<3> for PrinterStatus {
-    fn encode(self) -> [u8; 3] {
-        [self.media_type as u8, self.media_width, self.media_length]
+impl Encode for PrinterStatus {
+    fn encode(&self, mut buf: impl Write) -> std::io::Result<()> {
+        buf.write_all(&[self.media_type as u8, self.media_width, self.media_length])
     }
 }
 
@@ -100,9 +102,9 @@ pub enum PrinterCommandMode {
     PtouchTemplate = 0x03,
 }
 
-impl crate::driver::encode::Encode<1> for PrinterCommandMode {
-    fn encode(self) -> [u8; 1] {
-        (self as u8).encode()
+impl crate::driver::encode::Encode for PrinterCommandMode {
+    fn encode(&self, buf: impl Write) -> std::io::Result<()> {
+        (*self as u8).encode(buf)
     }
 }
 
@@ -112,9 +114,9 @@ pub struct PrinterMode {
     auto_cut: bool,
 }
 
-impl Encode<1> for PrinterMode {
-    fn encode(self) -> [u8; 1] {
-        [(self.auto_cut as u8) << 6]
+impl Encode for PrinterMode {
+    fn encode(&self, buf: impl Write) -> std::io::Result<()> {
+        [(self.auto_cut as u8) << 6].encode(buf)
     }
 }
 
@@ -126,8 +128,8 @@ pub struct PrinterExpandedMode {
     high_resolution_printing: bool,
 }
 
-impl Encode<1> for PrinterExpandedMode {
-    fn encode(self) -> [u8; 1] {
-        [(self.cut_at_end as u8) << 4 | (self.high_resolution_printing as u8) << 6]
+impl Encode for PrinterExpandedMode {
+    fn encode(&self, buf: impl Write) -> std::io::Result<()> {
+        [(self.cut_at_end as u8) << 4 | (self.high_resolution_printing as u8) << 6].encode(buf)
     }
 }
