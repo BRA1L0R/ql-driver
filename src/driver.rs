@@ -42,8 +42,6 @@ impl Printer {
     }
 
     pub fn write(&mut self, data: &[u8]) -> Result<(), PrinterError> {
-        dbg!(data);
-
         self.fd.write_all(data)?;
         Ok(())
     }
