@@ -61,13 +61,6 @@ macro_rules! implement_command_args {
         }
     };
 }
-
-macro_rules! implement_commands {
-    ($($name:tt => $data:expr),+) => {
-        $(implement_basic_command!($name, $data);)+
-    };
-}
-
 pub trait CommandResponse: Command {
     type Response;
     fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, PrinterError>;
@@ -77,16 +70,14 @@ pub trait Command {
     fn send_command(&self, printer: &mut Printer) -> Result<(), PrinterError>;
 }
 
-implement_commands! {
-    Reset => [0x00; 200],
-    Invalid => [0x00],
-    Initialize => [0x1b, 0x40],
-    StatusInfoRequest => [0x1b, 0x69, 0x53],
-    SetCompressionMode => [0x4d, 0x00],
-    ZeroRasterGraphics => [0x5A],
-    Print => [0x0c],
-    PrintWithFeeding => [0x1A]
-}
+implement_basic_command!(Reset, [0x00; 200]);
+implement_basic_command!(Invalid, [0x00]);
+implement_basic_command!(Initialize, [0x1b, 0x40]);
+implement_basic_command!(StatusInfoRequest, [0x1b, 0x69, 0x53]);
+implement_basic_command!(SetCompressionMode, [0x4d, 0x00]);
+implement_basic_command!(ZeroRasterGraphics, [0x5A]);
+implement_basic_command!(Print, [0x0c]);
+implement_basic_command!(PrintWithFeeding, [0x1A]);
 
 implement_command_args!(SetCommandMode, (mode: PrinterCommandMode) => [0x1B, 0x69, 0x61, mode]);
 implement_command_args!(SetMarginAmount, (margin: u16) => [0x1b, 0x69, 0x64, margin]);
