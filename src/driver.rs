@@ -1,3 +1,4 @@
+pub mod command;
 pub mod commands;
 mod encode;
 pub mod types;
@@ -8,7 +9,7 @@ use std::{
 };
 
 use crate::{
-    driver::commands::{Command, CommandResponse},
+    driver::command::{Command, CommandResponse},
     error::PrinterError,
 };
 

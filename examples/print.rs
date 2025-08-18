@@ -2,38 +2,30 @@
 //     PrinterCommand, PrinterCommandMode, PrinterCommander, PrinterStatus, commands,
 // };
 
-use ql_driver::driver::{PrinterCommander, commands, types::PrinterCommandMode};
+use ql_driver::prelude::*;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Hello, world!");
 
     // let printer = driver::Printer::new("/dev/usb/lp0").unwrap();
 
-    let mut commander = PrinterCommander::main("/dev/usb/lp0").unwrap();
+    let mut commander = PrinterCommander::main("/dev/usb/lp0")?;
 
-    commander.send_command(commands::Reset).unwrap();
-    commander.send_command(commands::Initialize).unwrap();
+    commander.send_command(Reset)?;
+    commander.send_command(Initialize)?;
 
-    let status = commander
-        .send_command_read(commands::StatusInfoRequest)
-        .unwrap();
-
-    commander
-        .send_command(commands::SetCommandMode::new(
-            PrinterCommandMode::EscpNormal,
-        ))
-        .unwrap();
-
-    commander
-        .send_command(commands::SetPrintInformation::new(status, 1))
-        .unwrap();
+    let status = commander.send_command_read(StatusInfoRequest)?;
+    commander.send_command(SetCommandMode::new(PrinterCommandMode::EscpNormal))?;
+    commander.send_command(SetPrintInformation::new(status, 1))?;
 
     let mut data = [0; 90];
     data.iter_mut()
         .enumerate()
         .for_each(|(a, b)| *b = (a % 2 == 0).then_some(0xFF).unwrap_or(0x00));
 
-    let transfer = commands::RasterGraphicsTransfer::new(&data).unwrap();
-    commander.send_command(transfer).unwrap();
-    commander.send_command(commands::Print).unwrap();
+    let transfer = RasterGraphicsTransfer::new(&data)?;
+    commander.send_command(transfer)?;
+    commander.send_command(Print)?;
+
+    Ok(())
 }
