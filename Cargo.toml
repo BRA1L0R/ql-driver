@@ -1,7 +1,3 @@
-[package]
-name = "ql-driver"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-thiserror = "2.0.15"
+[workspace]
+resolver = "3"
+members = ["ql-driver"]

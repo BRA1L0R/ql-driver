@@ -1,10 +1,13 @@
 use std::io::Write;
 
+/// defines something that is encodable into the format
+/// required for communicating with the printer
 pub trait Encode {
-    // const SIZE: usize;
+    // encode into a buffer
     fn encode(&self, buf: impl Write) -> std::io::Result<()>;
 }
 
+// encoding slices is just writing them as is into the buffer
 impl Encode for &[u8] {
     fn encode(&self, mut buf: impl Write) -> std::io::Result<()> {
         buf.write_all(&self)
@@ -30,6 +33,7 @@ macro_rules! encode_integers {
     };
 }
 
+// default implementations for integer types
 encode_integers!(u8);
 encode_integers!(u16);
 encode_integers!(u32);
@@ -38,15 +42,3 @@ encode_integers!(i8);
 encode_integers!(i16);
 encode_integers!(i32);
 encode_integers!(i64);
-
-// #[macro_export]
-// macro_rules! encode_enum {
-//     ($enum:ident, $repr:ty, $size:expr) => {
-//         impl crate::driver::encode::Encode<$size> for $enum {
-//             // const SIZE: usize = $repr::SIZE;
-//             fn encode(self) -> [u8; $size] {
-//                 (self as $repr).encode()
-//             }
-//         }
-//     };
-// }
