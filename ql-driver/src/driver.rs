@@ -13,12 +13,16 @@ use crate::{
     error::QlDriverError,
 };
 
-pub struct Printer {
+/// Low level serial transport with the Printer
+///
+/// - Writes are not buffered and directly flushed into the fd
+/// - Reads are stored in an internal buffer and a slice to it is given back
+pub struct PrinterLink {
     buffer: Box<[u8]>,
     fd: std::fs::File,
 }
 
-impl Printer {
+impl PrinterLink {
     const BUF_SIZE: usize = 64;
 
     pub fn new(path: &str) -> Result<Self, QlDriverError> {
@@ -47,13 +51,15 @@ impl Printer {
     }
 }
 
+/// Command-level interface with the printer.
+/// Checkout [`Command`] and [`CommandResponse`]
 pub struct PrinterCommander {
-    printer: Printer,
+    printer: PrinterLink,
 }
 
 impl PrinterCommander {
     pub fn main(path: &str) -> Result<Self, QlDriverError> {
-        let lp = Printer::new(path)?;
+        let lp = PrinterLink::new(path)?;
 
         Ok(Self { printer: lp })
     }

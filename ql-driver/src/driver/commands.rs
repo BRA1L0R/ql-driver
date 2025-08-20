@@ -1,7 +1,7 @@
 use crate::{
     command_segment,
     driver::{
-        Printer,
+        PrinterLink,
         command::{Command, CommandResponse},
     },
     error::QlDriverError,
@@ -30,7 +30,7 @@ implement_command_args!(SetExpandedMode, (printer_mode: PrinterExpandedMode) => 
 
 impl CommandResponse for StatusInfoRequest {
     type Response = PrinterStatus;
-    fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, QlDriverError> {
+    fn read_response(&self, printer: &mut PrinterLink) -> Result<Self::Response, QlDriverError> {
         let res = printer.read(32)?;
         assert!(res[0] == 0x80);
         assert!(res[1] == 0x20);
@@ -82,7 +82,7 @@ impl<'a> RasterGraphicsTransfer<'a> {
 }
 
 impl Command for RasterGraphicsTransfer<'_> {
-    fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError> {
+    fn send_command(&self, printer: &mut PrinterLink) -> Result<(), QlDriverError> {
         let size: u8 = self.data.len().try_into().unwrap(); // already checked when creating the struct
 
         printer.write(&[0x67, 0x00, size])?;

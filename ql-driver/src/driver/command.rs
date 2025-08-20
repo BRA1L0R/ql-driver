@@ -1,4 +1,4 @@
-use crate::{driver::Printer, error::QlDriverError};
+use crate::{driver::PrinterLink, error::QlDriverError};
 
 #[macro_export]
 macro_rules! implement_basic_command {
@@ -6,7 +6,7 @@ macro_rules! implement_basic_command {
         pub struct $name;
 
         impl Command for $name {
-            fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError> {
+            fn send_command(&self, printer: &mut PrinterLink) -> Result<(), QlDriverError> {
                 printer.write(&$data).map_err(Into::into)
             }
         }
@@ -41,7 +41,7 @@ macro_rules! implement_command_args {
         }
 
         impl Command for $name {
-            fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError> {
+            fn send_command(&self, printer: &mut PrinterLink) -> Result<(), QlDriverError> {
                 use std::io::Write;
                 use crate::driver::encode::Encode;
 
@@ -58,11 +58,19 @@ macro_rules! implement_command_args {
         }
     };
 }
+
+/// Implemented if the [`Command`] expects a reply.
+/// In this case, use [`crate::PrinterCommander::send_command_read`] instead, as it will wait on the serial connection for a reply.
+///
+/// Each Command has a unique `Response` associated to it
+/// that [`CommandResponse::read_response`] is responsible to decode
 pub trait CommandResponse: Command {
     type Response;
-    fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, QlDriverError>;
+
+    fn read_response(&self, printer: &mut PrinterLink) -> Result<Self::Response, QlDriverError>;
 }
 
+/// Represent a command that can be sent over a [`PrinterLink`]
 pub trait Command {
-    fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError>;
+    fn send_command(&self, printer: &mut PrinterLink) -> Result<(), QlDriverError>;
 }

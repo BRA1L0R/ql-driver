@@ -4,7 +4,7 @@
 
 use ql_driver::{PrintJob, PrintSettings, Printer};
 
-const STICKER: &[u8] = include_bytes!("./CIAOFRAME.png");
+const STICKER: &[u8] = include_bytes!("./sticker.webp");
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut printer = Printer::open("/dev/usb/lp0")?;
