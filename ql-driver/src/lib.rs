@@ -1,6 +1,10 @@
 use bitvec::{order::Msb0, vec::BitVec};
 use exoquant::ditherer::FloydSteinberg;
-use image::{GenericImageView, Rgba, imageops::FilterType, metadata::Orientation};
+use image::{
+    GenericImageView, ImageBuffer, Luma, Rgba,
+    imageops::{BiLevel, FilterType},
+    metadata::Orientation,
+};
 
 use crate::{
     driver::PrinterCommander,
@@ -50,62 +54,25 @@ impl PrintJob {
 
         let mut image = image.resize(width, height, FilterType::Lanczos3);
         image.apply_orientation(Orientation::FlipVertical);
-        // let image = image::imageops::resize(&image, width, height, FilterType::Lanczos3);
 
-        // let white = Rgba([255; 4]);
-        // let white_bg = image::ImageBuffer::from_pixel(image.width(), image.height(), white);
+        let mut bg = ImageBuffer::from_pixel(image.width(), image.height(), Rgba([255; 4]));
+        image::imageops::overlay(&mut bg, &image, 0, 0);
 
-        // image::imageops::dither
+        let mut image = image::imageops::grayscale(&bg);
 
-        use exoquant::*;
+        let gamma_correction = 5.14;
+        image.pixels_mut().for_each(|x| {
+            x.0 = [(255.0 * (x.0[0] as f32 / 255.0).powf(1.0 / gamma_correction)) as u8]
+        });
 
-        const PALETTE: [Color; 2] = [
-            Color {
-                r: 0,
-                g: 0,
-                b: 0,
-                a: 255,
-            },
-            Color {
-                r: 255,
-                g: 255,
-                b: 255,
-                a: 255,
-            },
-        ];
+        image::imageops::dither(&mut image, &BiLevel);
 
-        let ditherer = FloydSteinberg::vanilla();
-        let cs = SimpleColorSpace::default();
-        let remapper = exoquant::Remapper::new(&PALETTE, &cs, &ditherer);
-
-        fn gamma_correct(input: u8, gamma: f64) -> u8 {
-            ((input as f64 / 255.0).powf(1.0 / gamma) * 255.0) as u8
-        }
-
-        fn map_gamma(gamma: f64) -> impl Fn((u32, u32, Rgba<u8>)) -> Color {
-            move |(_, _, Rgba([r, g, b, a]))| {
-                Color::new(
-                    gamma_correct(r, gamma),
-                    gamma_correct(g, gamma),
-                    gamma_correct(b, gamma),
-                    a,
-                )
-            }
-        }
-
-        let gamma = 5.14;
-        let image_iterator = image.pixels().map(map_gamma(gamma));
-
-        let image_iterator = Box::new(image_iterator);
-        let dithered: BitVec<u8, Msb0> = remapper
-            .remap_iter(image_iterator, image.width() as usize)
-            .map(|a| a == 0)
-            .collect();
+        let dithered: BitVec<u8, Msb0> = image.pixels().map(|&Luma([a])| dbg!(a) == 0).collect();
 
         PrintJob {
             data: dithered,
-            width: image.width(),
             length: image.height(),
+            width: image.width(),
             settings,
         }
     }
