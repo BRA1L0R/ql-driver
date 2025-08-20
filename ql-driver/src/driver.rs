@@ -1,6 +1,7 @@
 pub mod command;
 pub mod commands;
 mod encode;
+pub mod transfer;
 pub mod types;
 
 use std::{
@@ -9,7 +10,7 @@ use std::{
 };
 
 use crate::{
-    driver::command::{Command, CommandResponse},
+    driver::command::{Command, CommandResponse, CommandTransfer},
     error::QlDriverError,
 };
 
@@ -74,5 +75,12 @@ impl PrinterCommander {
     ) -> Result<C::Response, QlDriverError> {
         command.send_command(&mut self.printer)?;
         command.read_response(&mut self.printer)
+    }
+
+    pub fn send_transfer<'a, T: CommandTransfer>(
+        &'a mut self,
+        transfer: T,
+    ) -> Result<T::Ship<'a>, QlDriverError> {
+        transfer.start_transfer(&mut self.printer)
     }
 }

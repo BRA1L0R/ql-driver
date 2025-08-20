@@ -23,7 +23,7 @@ implement_command_args!(SetMarginAmount, (margin: u16) => [0x1b, 0x69, 0x64, mar
 implement_command_args!(SetBaudRate, (baud_rate: u16) => [0x1b, 0x69, 0x42, baud_rate]);
 implement_command_args!(
     SetPrintInformation,
-    (media_type: MediaType, paper_width: u8, raster_lines: u32) => [0x1b, 0x69, 0x7a, (0x02 | 0x04 | 0x40 | 0x80), media_type, paper_width, 0, raster_lines, 1, 0]
+    (media_type: MediaType, paper_width: u8, paper_length: u8, raster_lines: u32) => [0x1b, 0x69, 0x7a, (0x02 | 0x04 | 0x08 | 0x40 | 0x80), media_type, paper_width, paper_length, raster_lines, 1, 0]
 );
 implement_command_args!(SetMode, (printer_mode: PrinterMode) => [0x1b, 0x69, 0x4d, printer_mode]);
 implement_command_args!(SetExpandedMode, (printer_mode: PrinterExpandedMode) => [0x1b, 0x69, 0x4d, printer_mode]);

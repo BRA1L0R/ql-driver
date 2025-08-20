@@ -2,18 +2,19 @@
 //     PrinterCommand, PrinterCommandMode, PrinterCommander, PrinterStatus, commands,
 // };
 
-use ql_driver::{PrintJob, PrintSettings, Printer};
-
-const STICKER: &[u8] = include_bytes!("./sticker.webp");
+use ql_driver::{Printer, image::ImageBuilder};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut printer = Printer::open("/dev/usb/lp0")?;
+    let file = std::env::args().nth(1).expect("expect file argument");
 
-    let image = image::load_from_memory(STICKER)?;
-    let settings = PrintSettings::QL_500;
+    let image = ImageBuilder::open(&file)?.dither().render();
+    printer.print_image(&image)?;
 
-    let job = PrintJob::rasterize_image(image, settings);
-    printer.print(&job)?;
+    // let settings = PrinterSettings::QL_500;
+
+    // let job = PrintJob::rasterize_image(image, settings);
+    // printer.print(&job)?;
 
     // println!("Hello, world!");
 

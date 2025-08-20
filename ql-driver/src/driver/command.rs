@@ -74,3 +74,16 @@ pub trait CommandResponse: Command {
 pub trait Command {
     fn send_command(&self, printer: &mut PrinterLink) -> Result<(), QlDriverError>;
 }
+
+pub trait CommandTransfer {
+    type Ship<'a>: Ship;
+
+    fn start_transfer<'a>(
+        &self,
+        printer: &'a mut PrinterLink,
+    ) -> Result<Self::Ship<'a>, QlDriverError>;
+}
+
+pub trait Ship: Sized {
+    fn end(self);
+}
