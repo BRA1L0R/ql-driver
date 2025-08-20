@@ -2,9 +2,9 @@
 //     PrinterCommand, PrinterCommandMode, PrinterCommander, PrinterStatus, commands,
 // };
 
-use ql_driver::{PrintJob, PrintSettings, Printer, prelude::*};
+use ql_driver::{PrintJob, PrintSettings, Printer};
 
-const STICKER: &[u8] = include_bytes!("./sticker.webp");
+const STICKER: &[u8] = include_bytes!("./CIAOFRAME.png");
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut printer = Printer::open("/dev/usb/lp0")?;

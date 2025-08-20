@@ -1,7 +1,6 @@
 use bitvec::{order::Msb0, vec::BitVec};
-use exoquant::ditherer::FloydSteinberg;
 use image::{
-    GenericImageView, ImageBuffer, Luma, Rgba,
+    ImageBuffer, Luma, Rgba,
     imageops::{BiLevel, FilterType},
     metadata::Orientation,
 };
@@ -11,7 +10,7 @@ use crate::{
     error::QlDriverError,
     prelude::{
         Initialize, MediaType, PrintWithFeeding, PrinterCommandMode, RasterGraphicsTransfer, Reset,
-        SetCommandMode, SetMarginAmount, SetPrintInformation, StatusInfoRequest,
+        SetCommandMode, SetMarginAmount, SetPrintInformation,
     },
 };
 
@@ -38,24 +37,19 @@ impl PrintSettings {
 
 pub struct PrintJob {
     data: bitvec::vec::BitVec<u8, Msb0>,
-
-    length: u32,
-    width: u32,
-
     settings: PrintSettings,
 }
 
 impl PrintJob {
     pub fn rasterize_image(image: image::DynamicImage, settings: PrintSettings) -> PrintJob {
-        // let width = std::cmp::min(image.width(), settings.print_width);
-        let width = settings.print_width;
+        let width = std::cmp::min(image.width(), settings.print_width);
         let height =
             image.height() * width / image.width() * settings.high_dpi.then_some(2).unwrap_or(1);
 
         let mut image = image.resize(width, height, FilterType::Lanczos3);
         image.apply_orientation(Orientation::FlipVertical);
 
-        let mut bg = ImageBuffer::from_pixel(image.width(), image.height(), Rgba([255; 4]));
+        let mut bg = ImageBuffer::from_pixel(settings.print_width, image.height(), Rgba([255; 4]));
         image::imageops::overlay(&mut bg, &image, 0, 0);
 
         let mut image = image::imageops::grayscale(&bg);
@@ -67,12 +61,10 @@ impl PrintJob {
 
         image::imageops::dither(&mut image, &BiLevel);
 
-        let dithered: BitVec<u8, Msb0> = image.pixels().map(|&Luma([a])| dbg!(a) == 0).collect();
+        let dithered: BitVec<u8, Msb0> = image.pixels().map(|&Luma([a])| a == 0).collect();
 
         PrintJob {
             data: dithered,
-            length: image.height(),
-            width: image.width(),
             settings,
         }
     }
@@ -94,28 +86,23 @@ impl Printer {
         self.printer
             .send_command(SetCommandMode::new(PrinterCommandMode::Raster))?;
 
-        self.printer.send_command(SetPrintInformation::new(
-            MediaType::Continuous,
-            62,
-            job.length,
-        ))?;
+        let lines = job.data.len() as u32 / job.settings.print_width;
+
+        self.printer
+            .send_command(SetPrintInformation::new(MediaType::Continuous, 62, lines))?;
 
         self.printer.send_command(SetMarginAmount::new(0))?;
 
-        for line in 0..job.length {
-            let index = (line * job.width) as usize / 8;
-            let line = &job.data.as_raw_slice()[index..(index + job.width as usize / 8)];
-
-            println!("Sending {}", line.len());
+        for line in 0..lines {
+            let index = (line * job.settings.print_width) as usize / 8;
+            let line =
+                &job.data.as_raw_slice()[index..(index + job.settings.print_width as usize / 8)];
 
             self.printer
                 .send_command(RasterGraphicsTransfer::new(line)?)?;
         }
 
         self.printer.send_command(PrintWithFeeding)?;
-
-        let status = self.printer.send_command_read(StatusInfoRequest)?;
-        dbg!(status);
 
         Ok(())
     }
