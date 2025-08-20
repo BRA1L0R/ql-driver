@@ -9,57 +9,51 @@ use crate::{
 };
 
 pub struct RasterShip<'a> {
+    bytes_per_line: u8,
+
     printer: &'a mut PrinterLink,
     line: bitvec::vec::BitVec<u8, Msb0>,
 }
 
 impl RasterShip<'_> {
     const CONTROL: [u8; 3] = [b'g', 0x00, 0x00];
-    const CONTROL_BITS: usize = Self::CONTROL.len() * 8;
 
-    fn current_length(&self) -> usize {
-        self.line.len() - Self::CONTROL_BITS // account for control bytes at the start
-    }
+    pub fn push_line(&mut self, data: &BitSlice) {
+        let bits_per_line = self.bytes_per_line as usize * 8;
+        assert!(data.len() <= bits_per_line);
 
-    pub fn push_bits(&mut self, data: &BitSlice) {
-        assert!(data.len() + self.current_length() < (u8::MAX as usize * 8));
+        let mut control = Self::CONTROL;
+        control[2] = self.bytes_per_line;
 
-        self.line.extend_from_bitslice(data);
-    }
-
-    pub fn fill_remaining(&mut self, target_size: usize) {
-        assert!(target_size >= self.current_length());
-
-        // let remaining = target_size - self.current_length();
-        println!("prev size {}", self.line.len());
-        self.line.resize(target_size + Self::CONTROL_BITS, false);
-        println!("after size {}", self.line.len());
-    }
-
-    pub fn send_line(&mut self) -> Result<(), QlDriverError> {
-        let bytes = self.line.len().div_ceil(8);
-
-        // fills the remaining unused bits to a known value
         self.line.set_uninitialized(false);
-        let data = self.line.as_raw_mut_slice();
+        self.line.extend_from_raw_slice(&control);
+        self.line.extend_from_bitslice(data);
 
-        // set the byte transfer length and then write to the printer
-        data[2] = bytes.try_into().unwrap();
-        self.printer.write(data)?;
-
-        println!("now sending {data:?}");
-
-        // restore the first 3 bytes of control data
-        self.line.truncate(Self::CONTROL_BITS);
-        Ok(())
+        let fill_diff = bits_per_line - data.len();
+        self.line.resize(self.line.len() + fill_diff, false);
     }
 }
 
 impl Ship for RasterShip<'_> {
-    fn end(self) {}
+    fn send(mut self) -> Result<(), QlDriverError> {
+        self.line.set_uninitialized(false);
+        let data = self.line.as_raw_slice();
+
+        self.printer.write(data)?;
+
+        Ok(())
+    }
 }
 
-pub struct RasterTransfer;
+pub struct RasterTransfer {
+    bytes_per_line: u8,
+}
+
+impl RasterTransfer {
+    pub fn new(bytes_per_line: u8) -> Self {
+        Self { bytes_per_line }
+    }
+}
 
 impl CommandTransfer for RasterTransfer {
     type Ship<'a> = RasterShip<'a>;
@@ -68,8 +62,12 @@ impl CommandTransfer for RasterTransfer {
         printer: &'a mut PrinterLink,
     ) -> Result<Self::Ship<'a>, QlDriverError> {
         // these are the raw command bytes that will be sent
-        let line: BitVec<u8, Msb0> = BitVec::from_slice(&[b'g', 0x00, 0x00]);
+        let line: BitVec<u8, Msb0> = BitVec::new();
 
-        Ok(RasterShip { printer, line })
+        Ok(RasterShip {
+            printer,
+            line,
+            bytes_per_line: self.bytes_per_line,
+        })
     }
 }

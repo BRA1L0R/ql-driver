@@ -85,5 +85,5 @@ pub trait CommandTransfer {
 }
 
 pub trait Ship: Sized {
-    fn end(self);
+    fn send(self) -> Result<(), QlDriverError>;
 }

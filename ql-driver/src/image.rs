@@ -44,8 +44,6 @@ impl ImageBuilder {
     pub fn render(&self) -> PrintableImage {
         let image = self.image.pixels().map(|&Luma([x])| x < 127).collect();
 
-        assert!(self.image.width() % 8 == 0);
-
         PrintableImage {
             image,
             width: self.image.width(),
