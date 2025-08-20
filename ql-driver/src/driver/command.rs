@@ -1,4 +1,4 @@
-use crate::{driver::Printer, error::PrinterError};
+use crate::{driver::Printer, error::QlDriverError};
 
 #[macro_export]
 macro_rules! implement_basic_command {
@@ -6,7 +6,7 @@ macro_rules! implement_basic_command {
         pub struct $name;
 
         impl Command for $name {
-            fn send_command(&self, printer: &mut Printer) -> Result<(), PrinterError> {
+            fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError> {
                 printer.write(&$data).map_err(Into::into)
             }
         }
@@ -23,7 +23,7 @@ macro_rules! command_segment {
     };
 
     ($self:expr, $buf:expr, $segment:expr) => {
-        $buf.write(&[$segment]).expect("no space in buffer");
+        $buf.write_all(&[$segment]).expect("no space in buffer");
     };
 }
 
@@ -41,7 +41,7 @@ macro_rules! implement_command_args {
         }
 
         impl Command for $name {
-            fn send_command(&self, printer: &mut Printer) -> Result<(), PrinterError> {
+            fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError> {
                 use std::io::Write;
                 use crate::driver::encode::Encode;
 
@@ -60,9 +60,9 @@ macro_rules! implement_command_args {
 }
 pub trait CommandResponse: Command {
     type Response;
-    fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, PrinterError>;
+    fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, QlDriverError>;
 }
 
 pub trait Command {
-    fn send_command(&self, printer: &mut Printer) -> Result<(), PrinterError>;
+    fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError>;
 }

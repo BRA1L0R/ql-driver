@@ -10,7 +10,7 @@ use std::{
 
 use crate::{
     driver::command::{Command, CommandResponse},
-    error::PrinterError,
+    error::QlDriverError,
 };
 
 pub struct Printer {
@@ -21,28 +21,27 @@ pub struct Printer {
 impl Printer {
     const BUF_SIZE: usize = 64;
 
-    pub fn new(path: &str) -> Result<Self, PrinterError> {
+    pub fn new(path: &str) -> Result<Self, QlDriverError> {
         let fd = File::options().read(true).write(true).open(path)?;
         let buffer = Box::new([0u8; Self::BUF_SIZE]);
 
         Ok(Self { fd, buffer })
     }
 
-    pub fn read(&mut self, length: usize) -> Result<&[u8], PrinterError> {
+    pub fn read(&mut self, length: usize) -> Result<&[u8], QlDriverError> {
         assert!(length < Self::BUF_SIZE);
 
         // try 10 times and return ReadTimeout if none of the attempts are ok
         (0..10)
-            .into_iter()
             .map(|_| self.fd.read_exact(&mut self.buffer[..length])) // for each attempt try the read_exact
             .filter_map(Result::ok) // filter out None values
             .next() // next with filter should iterate until an Ok value is found
-            .ok_or(PrinterError::ReadTimeout)?; // if none is found return a timeout error
+            .ok_or(QlDriverError::ReadTimeout)?; // if none is found return a timeout error
 
         Ok(&self.buffer[..length])
     }
 
-    pub fn write(&mut self, data: &[u8]) -> Result<(), PrinterError> {
+    pub fn write(&mut self, data: &[u8]) -> Result<(), QlDriverError> {
         self.fd.write_all(data)?;
         Ok(())
     }
@@ -53,20 +52,20 @@ pub struct PrinterCommander {
 }
 
 impl PrinterCommander {
-    pub fn main(path: &str) -> Result<Self, PrinterError> {
+    pub fn main(path: &str) -> Result<Self, QlDriverError> {
         let lp = Printer::new(path)?;
 
         Ok(Self { printer: lp })
     }
 
-    pub fn send_command<C: Command>(&mut self, command: C) -> Result<(), PrinterError> {
+    pub fn send_command<C: Command>(&mut self, command: C) -> Result<(), QlDriverError> {
         command.send_command(&mut self.printer)
     }
 
     pub fn send_command_read<C: CommandResponse>(
         &mut self,
         command: C,
-    ) -> Result<C::Response, PrinterError> {
+    ) -> Result<C::Response, QlDriverError> {
         command.send_command(&mut self.printer)?;
         command.read_response(&mut self.printer)
     }

@@ -1,9 +1,9 @@
 use thiserror::Error;
 
-pub type PrinterResult<T> = Result<T, PrinterError>;
+pub type PrinterResult<T> = Result<T, QlDriverError>;
 
 #[derive(Error, Debug)]
-pub enum PrinterError {
+pub enum QlDriverError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
 

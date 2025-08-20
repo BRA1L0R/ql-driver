@@ -10,7 +10,7 @@ pub trait Encode {
 // encoding slices is just writing them as is into the buffer
 impl Encode for &[u8] {
     fn encode(&self, mut buf: impl Write) -> std::io::Result<()> {
-        buf.write_all(&self)
+        buf.write_all(self)
     }
 }
 
@@ -20,7 +20,6 @@ impl<const N: usize> Encode for [u8; N] {
     }
 }
 
-#[macro_export]
 macro_rules! encode_integers {
     ($integer:ty) => {
         impl crate::driver::encode::Encode for $integer {

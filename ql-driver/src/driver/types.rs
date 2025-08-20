@@ -58,6 +58,13 @@ pub enum MediaType {
     Continuous = 0x0A,
     DieCutLabels = 0x0B,
 }
+
+impl Encode for MediaType {
+    fn encode(&self, buf: impl Write) -> std::io::Result<()> {
+        (*self as u8).encode(buf)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum StatusType {
     ReplyToStatusRequest,
@@ -82,12 +89,6 @@ pub struct PrinterStatus {
     pub error2: ErrorInformation2,
     pub status_type: StatusType,
     pub phase_state: PhaseState,
-}
-
-impl Encode for PrinterStatus {
-    fn encode(&self, mut buf: impl Write) -> std::io::Result<()> {
-        buf.write_all(&[self.media_type as u8, self.media_width, self.media_length])
-    }
 }
 
 #[derive(Clone, Copy)]

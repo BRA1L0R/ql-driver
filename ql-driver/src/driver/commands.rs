@@ -4,7 +4,7 @@ use crate::{
         Printer,
         command::{Command, CommandResponse},
     },
-    error::PrinterError,
+    error::QlDriverError,
     implement_basic_command, implement_command_args,
     prelude::*,
 };
@@ -21,13 +21,16 @@ implement_basic_command!(PrintWithFeeding, [0x1A]);
 implement_command_args!(SetCommandMode, (mode: PrinterCommandMode) => [0x1B, 0x69, 0x61, mode]);
 implement_command_args!(SetMarginAmount, (margin: u16) => [0x1b, 0x69, 0x64, margin]);
 implement_command_args!(SetBaudRate, (baud_rate: u16) => [0x1b, 0x69, 0x42, baud_rate]);
-implement_command_args!(SetPrintInformation, (status: PrinterStatus, line_count: i32) => [0x1b, 0x69, 0x7a, (0x02 | 0x04 | 0x08 | 0x40 | 0x80), status, line_count, 1, 0]);
+implement_command_args!(
+    SetPrintInformation,
+    (media_type: MediaType, paper_width: u8, raster_lines: u32) => [0x1b, 0x69, 0x7a, (0x02 | 0x04 | 0x40 | 0x80), media_type, paper_width, 0, raster_lines, 1, 0]
+);
 implement_command_args!(SetMode, (printer_mode: PrinterMode) => [0x1b, 0x69, 0x4d, printer_mode]);
 implement_command_args!(SetExpandedMode, (printer_mode: PrinterExpandedMode) => [0x1b, 0x69, 0x4d, printer_mode]);
 
 impl CommandResponse for StatusInfoRequest {
     type Response = PrinterStatus;
-    fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, PrinterError> {
+    fn read_response(&self, printer: &mut Printer) -> Result<Self::Response, QlDriverError> {
         let res = printer.read(32)?;
         assert!(res[0] == 0x80);
         assert!(res[1] == 0x20);
@@ -36,7 +39,7 @@ impl CommandResponse for StatusInfoRequest {
             0x00 => MediaType::NoMedia,
             0x0A => MediaType::Continuous,
             0x0B => MediaType::DieCutLabels,
-            _ => return Err(PrinterError::BadData("unknown media type")),
+            _ => return Err(QlDriverError::BadData("unknown media type")),
         };
 
         let status_type = match res[18] {
@@ -45,13 +48,13 @@ impl CommandResponse for StatusInfoRequest {
             0x02 => StatusType::Error,
             0x05 => StatusType::Notification,
             0x06 => StatusType::PhaseChange,
-            _ => return Err(PrinterError::BadData("unknown status type")),
+            _ => return Err(QlDriverError::BadData("unknown status type")),
         };
 
         let phase_state = match res[19] {
             0x00 => PhaseState::Waiting,
             0x01 => PhaseState::Printing,
-            _ => return Err(PrinterError::BadData("unknown phase status")),
+            _ => return Err(QlDriverError::BadData("unknown phase status")),
         };
 
         Ok(PrinterStatus {
@@ -71,15 +74,15 @@ pub struct RasterGraphicsTransfer<'a> {
 }
 
 impl<'a> RasterGraphicsTransfer<'a> {
-    pub fn new(data: &'a [u8]) -> Result<Self, PrinterError> {
+    pub fn new(data: &'a [u8]) -> Result<Self, QlDriverError> {
         (data.len() < u8::MAX as usize)
             .then_some(Self { data })
-            .ok_or(PrinterError::WrongDataSize)
+            .ok_or(QlDriverError::WrongDataSize)
     }
 }
 
 impl Command for RasterGraphicsTransfer<'_> {
-    fn send_command(&self, printer: &mut Printer) -> Result<(), PrinterError> {
+    fn send_command(&self, printer: &mut Printer) -> Result<(), QlDriverError> {
         let size: u8 = self.data.len().try_into().unwrap(); // already checked when creating the struct
 
         printer.write(&[0x67, 0x00, size])?;
