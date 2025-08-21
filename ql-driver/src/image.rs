@@ -17,7 +17,7 @@ impl ImageBuilder {
         let mut buffer = ImageBuffer::from_pixel(image.width(), image.height(), Rgba([255; 4]));
         image::imageops::overlay(&mut buffer, &image, 0, 0);
 
-        let image = image::imageops::grayscale(&mut buffer);
+        let image = image::imageops::grayscale(&buffer);
         Ok(ImageBuilder { image })
     }
 
