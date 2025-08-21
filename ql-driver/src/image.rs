@@ -32,6 +32,7 @@ impl ImageBuilder {
         &mut self.image
     }
 
+    /// applies gamma correction to the image
     pub fn gamma_correction(&mut self, gamma: f64) -> &mut Self {
         self.image
             .pixels_mut()

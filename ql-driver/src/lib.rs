@@ -1,31 +1,31 @@
-use crate::{
-    driver::{PrinterCommander, command::Ship, transfer::RasterTransfer},
-    error::QlDriverError,
-    image::PrintableImage,
-    prelude::{
-        Initialize, PrintWithFeeding, PrinterCommandMode, Reset, SetCommandMode, SetMarginAmount,
-        SetPrintInformation, StatusInfoRequest,
-    },
-};
+#![warn(missing_docs)]
 
+use crate::{driver::PrinterCommander, image::PrintableImage, prelude::*};
+
+/// Low level primitives to communicate with the printer
 pub mod driver;
-pub mod error;
+/// Builder pattern structures to convert any image format to printable bitmaps
 pub mod image;
 // pub mod image;
 
+mod error;
+pub use error::*;
+
+/// Importable prelude for often reused structures
 pub mod prelude {
-    pub use crate::driver::PrinterCommander;
-    pub use crate::driver::commands::*;
+    pub use crate::driver::command::*;
     pub use crate::driver::types::*;
 }
 
+/// High-level interface for communicating with the printer
 pub struct Printer {
     // print_buffer: BitVec<u8, Msb0>,
     printer: PrinterCommander,
 }
 
 impl Printer {
-    pub fn open(path: &str) -> Result<Self, QlDriverError> {
+    /// Open a char device at the specified `path`
+    pub fn open(path: &str) -> Result<Self, QlError> {
         let mut printer = PrinterCommander::main(path)?;
 
         printer.send_command(Reset)?;
@@ -37,7 +37,7 @@ impl Printer {
         })
     }
 
-    pub fn print_image(&mut self, job: &PrintableImage) -> Result<(), QlDriverError> {
+    pub fn print_image(&mut self, job: &PrintableImage) -> Result<(), QlError> {
         self.printer
             .send_command(SetCommandMode::new(PrinterCommandMode::Raster))?;
 

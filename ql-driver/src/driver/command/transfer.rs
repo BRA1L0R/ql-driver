@@ -1,12 +1,16 @@
 use bitvec::{order::Msb0, slice::BitSlice, vec::BitVec};
 
-use crate::{
-    driver::{
-        PrinterLink,
-        command::{CommandTransfer, Ship},
-    },
-    error::QlDriverError,
-};
+use crate::{driver::PrinterLink, error::QlError};
+
+pub trait CommandTransfer {
+    type Ship<'a>: Ship;
+
+    fn start_transfer<'a>(&self, printer: &'a mut PrinterLink) -> Result<Self::Ship<'a>, QlError>;
+}
+
+pub trait Ship: Sized {
+    fn send(self) -> Result<(), QlError>;
+}
 
 pub struct RasterShip<'a> {
     bytes_per_line: u8,
@@ -35,7 +39,7 @@ impl RasterShip<'_> {
 }
 
 impl Ship for RasterShip<'_> {
-    fn send(mut self) -> Result<(), QlDriverError> {
+    fn send(mut self) -> Result<(), QlError> {
         self.line.set_uninitialized(false);
         let data = self.line.as_raw_slice();
 
@@ -57,10 +61,7 @@ impl RasterTransfer {
 
 impl CommandTransfer for RasterTransfer {
     type Ship<'a> = RasterShip<'a>;
-    fn start_transfer<'a>(
-        &self,
-        printer: &'a mut PrinterLink,
-    ) -> Result<Self::Ship<'a>, QlDriverError> {
+    fn start_transfer<'a>(&self, printer: &'a mut PrinterLink) -> Result<Self::Ship<'a>, QlError> {
         // these are the raw command bytes that will be sent
         let line: BitVec<u8, Msb0> = BitVec::new();
 
